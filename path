@@ -1,0 +1,26 @@
+Configure SUDO
+
+Setup a static IP
+
+/etc/network/interfaces
+
+iface enp0s3 inet static
+address 192.168.20.2
+netmask 255.255.255.252
+gateway 192.168.20.1
+auto enp0s3
+
+sudo service networking restart
+
+Change SSH default Port
+
+/etc/ssh/sshd_config
+
+Setup SSH access with publickeys.
+
+ssh-copy-id -i ~/.ssh/id_rsa.pub roger@192.168.20.2 -p 51488
+
+
+
+
+sudo service sshd restart

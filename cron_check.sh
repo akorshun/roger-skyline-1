@@ -1,6 +1,6 @@
-cat /etc/crontab > /home/mkeel/checksum
-CHECKSUM=/home/mkeel/checksum
-TEMP=/home/mkeel/temp
+cat /etc/crontab > /home/roger/checksum
+CHECKSUM=/home/roger/checksum
+TEMP=/home/roger/temp
 DIFF=$(diff $CHECKSUM $TEMP)
 if [ ! -f $TEMP ]; then
     cat $CHECKSUM > $TEMP
