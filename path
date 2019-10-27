@@ -47,6 +47,8 @@ sudo service sshd restart
 
 ssh roger@192.168.20.2 -p 51488
 
+sudo apt install iptables-persistent
+
 sudo nano /etc/network/if-pre-up.d/iptables
 
 iptables-restore </etc/iptables.test.rules
@@ -63,6 +65,8 @@ iptables -I INPUT -i lo -j ACCEPT
 iptables -A INPUT -j LOG
 iptables -A FORWARD -j LOG
 iptables -I INPUT -p tcp -dport 80 -m connlimit -connlimit-above 10 -connlimit-mask 20 -j DROP
+
+The iptables rules are reset at each reboot. This file will allow the iptables-persistent package to load your rules every time you reboot. Modify port 51488 by the port of your ssh.
 
 Protection against port scans.
 /etc/default/portsentry
