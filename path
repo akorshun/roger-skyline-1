@@ -55,9 +55,9 @@ iptables -P INPUT DROP
 iptables -P OUTPUT DROP
 iptables -P FORWARD DROP
 iptables -A INPUT -m conntrack -ctstate ESTABLISHED, RELATED -j ACCEPT
-iptables -A INPUT -p tcp -i enp0s8 -dport 2222 -j ACCEPT
-iptables -A INPUT -p tcp -i enp0s8 -dport 80 -j ACCEPT
-iptables -A INPUT -p tcp -i enp0s8 -dport 443 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s3 -dport 51488 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s3 -dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s3 -dport 443 -j ACCEPT
 iptables -A OUTPUT -m conntrack! --ctstate INVALID -j ACCEPT
 iptables -I INPUT -i lo -j ACCEPT
 iptables -A INPUT -j LOG
@@ -100,6 +100,15 @@ sudo systemctl enable cron
 
 Deploy a Web application reacheable on the machine IP's
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+
+    • openssl: базовый инструмент командной строки для создания и управления сертификатами, ключами и другими файлами OpenSSL.
+    • req: эта подкоманда указывает, что на данном этапе нужно использовать запрос на подпись сертификата X.509 (CSR). X.509 – это стандарт инфраструктуры открытого ключа, которого придерживаются SSL и TLS при управлении ключами и сертификатами. То есть, данная команда позволяет создать новый сертификат X.509.
+    • —x509: данная опция вносит поправку в предыдущую субкоманду, сообщая утилите о том, что вместо запроса на подписание сертификата необходимо создать самоподписанный сертификат.
+    • —nodes: говорит OpenSSL пропустить опцию защиты сертификата парольной фразой. Нужно, чтобы при запуске сервер Nginx имел возможность читать файл без вмешательства пользователя. Установив пароль, придется вводить его после каждой перезагрузки.
+    • —days 365: эта опция устанавливает срок действия сертификата (как видите, в данном случае сертификат действителен в течение года).
+    • —newkey rsa:2048: эта опция позволяет одновременно создать новый сертификат и новый ключ. Поскольку ключ, необходимый для подписания сертификата, не был создан ранее, нужно создать его вместе с сертификатом. Данная опция создаст ключ RSA на 2048 бит.
+    • —keyout: эта опция сообщает OpenSSL, куда поместить сгенерированный файл ключа.
+    • —out: сообщает OpenSSL, куда поместить созданный сертификат.
 
 sudo apt install apache2
 
