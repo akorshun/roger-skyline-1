@@ -1,4 +1,17 @@
+/etc/sudoers
+roger ALL=(ALL:ALL) NOPASSWD:ALL
+
+ADD USER
+su -
+adduser roger
+adduser roger sudo
+su roger
+
 Configure SUDO
+sudo через apt-get install sudo
+
+
+
 
 Setup a static IP
 
@@ -18,9 +31,140 @@ Change SSH default Port
 
 Setup SSH access with publickeys.
 
+ssh-keygen -t rsa
 ssh-copy-id -i ~/.ssh/id_rsa.pub roger@192.168.20.2 -p 51488
 
+/etc/ssh/sshd_config
+PermitRootLogin no
+PasswordAuthentication no
+PubKeyAuthentication yes
+
+sudo systemctl restart sshd
 
 
 
 sudo service sshd restart
+
+ssh roger@192.168.20.2 -p 51488
+
+sudo nano /etc/network/if-pre-up.d/iptables
+
+iptables-restore </etc/iptables.test.rules
+iptables -F iptables -X iptables -t nat -F iptables -t nat -X iptables -t mangle -F iptables -t mangle -X
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+iptables -P FORWARD DROP
+iptables -A INPUT -m conntrack -ctstate ESTABLISHED, RELATED -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s8 -dport 2222 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s8 -dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s8 -dport 443 -j ACCEPT
+iptables -A OUTPUT -m conntrack! --ctstate INVALID -j ACCEPT
+iptables -I INPUT -i lo -j ACCEPT
+iptables -A INPUT -j LOG
+iptables -A FORWARD -j LOG
+iptables -I INPUT -p tcp -dport 80 -m connlimit -connlimit-above 10 -connlimit-mask 20 -j DROP
+
+Protection against port scans.
+/etc/default/portsentry
+TCP_MODE="atcp"
+UDP_MODE="audp"
+
+/etc/portsentry/portsentry.conf
+BLOCK_UDP="1"
+BLOCK_TCP="1"
+
+Update Packages
+
+update.sh
+
+sudo crontab -e
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+@reboot sudo /home/roger/update.sh
+0 4 * * 6 sudo /home/roger/update.sh
+
+Monitor Crontab Changes
+
+cron_check.sh
+
+crontab -e
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+@reboot sudo /home/roger/update.sh
+0 4 * * 6 sudo /home/roger/update.sh
+0 0 * * * sudo /home/roger/cron_check.sh
+
+sudo systemctl enable cron
+
+Deploy a Web application reacheable on the machine IP's
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+
+sudo apt install apache2
+
+/etc/apache2/conf-available/ssl-params.conf
+
+SSLCipherSuite EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
+SSLProtocol All -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+SSLHonorCipherOrder On
+
+Header always set X-Frame-Options DENY
+Header always set X-Content-Type-Options nosniff
+
+SSLCompression off
+SSLUseStapling on
+SSLStaplingCache "shmcb:logs/stapling-cache(150000)"
+
+SSLSessionTickets Off
+
+/etc/apache2/sites-available/default-ssl.conf
+
+<IfModule mod_ssl.c>
+	<VirtualHost _default_:443>
+		ServerAdmin bsatou@student.42.fr
+		ServerName	192.168.20.2
+
+		DocumentRoot /var/www/html
+
+		ErrorLog ${APACHE_LOG_DIR}/error.log
+		CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+		SSLEngine on
+
+		SSLCertificateFile	/etc/ssl/certs/apache-selfsigned.crt
+		SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+
+		<FilesMatch "\.(cgi|shtml|phtml|php)$">
+				SSLOptions +StdEnvVars
+		</FilesMatch>
+		<Directory /usr/lib/cgi-bin>
+				SSLOptions +StdEnvVars
+		</Directory>
+
+	</VirtualHost>
+</IfModule>
+
+/etc/apache2/sites-available/000-default.conf
+
+<VirtualHost *:80>
+
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+
+	Redirect "/" "https://192.168.20.2/"
+
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+</VirtualHost>
+
+sudo a2enmod ssl
+sudo a2enmod headers
+sudo a2ensite default-ssl
+sudo a2enconf ssl-params
+systemctl reload apache2
+
+Deploy
+
+upload.sh
